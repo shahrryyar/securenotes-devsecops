@@ -118,14 +118,15 @@ make test           # 16 security tests fail: every planted bug is caught by a t
 git checkout main
 ```
 
-## Setting up on GitHub (once, by one team member)
+## On GitHub
 
-```bash
-gh auth login
-scripts/setup_github.sh securenotes-devsecops <teammate1> <teammate2>
-```
+Live repository: **https://github.com/shahrryyar/securenotes-devsecops**
 
-This creates a public repository, pushes both branches, enables secret scanning, push protection, Dependabot and private vulnerability reporting, locks Actions down to SHA-pinned actions, protects `main` with a ruleset (PR + code-owner review + green **Security gate**) and opens the demo PR. Each step is explained in **[docs/SETUP-GITHUB.md](docs/SETUP-GITHUB.md)**.
+- Pipeline runs: **Actions** tab
+- All findings in one place: **Security → Code scanning**
+- The blocked demo: the open pull request `vulnerable → main` (never merge it)
+
+The repository settings (secret scanning, push protection, Dependabot, SHA-pinned actions only) and the remaining steps (teammates, branch ruleset) are listed in **[docs/SETUP-GITHUB.md](docs/SETUP-GITHUB.md)**. For a fresh copy, `scripts/setup_github.sh` does everything in one command.
 
 ## Documentation
 
