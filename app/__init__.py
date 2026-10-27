@@ -33,6 +33,10 @@ def create_app(test_config=None):
         # Disabled only for plain-HTTP environments such as the DAST job.
         SESSION_COOKIE_SECURE=os.environ.get("SESSION_COOKIE_SECURE", "true").lower() == "true",
     )
+    # VULN-05 (CWE-798): secrets hardcoded in source code and committed to git
+    notify_api_token = "q8Zr4LmT2vXy9KpW6sNd3HbF7cJe1GaU"
+    app.config["SECRET_KEY"] = "dev-secret-key-8f2a91c4"
+    app.config["NOTIFY_API_TOKEN"] = notify_api_token
     if test_config:
         app.config.update(test_config)
 

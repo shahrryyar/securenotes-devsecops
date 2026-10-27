@@ -1,0 +1,18 @@
+# Intentionally insecure workflow used to show CI/CD security scanning.
+# It only runs manually and has no secrets, but zizmor, CodeQL and Semgrep flag it.
+name: Insecure example
+
+on:
+  workflow_dispatch:
+    inputs:
+      greeting:
+        description: Text to print
+        default: hello
+
+jobs:
+  greet:
+    runs-on: ubuntu-latest
+    steps:
+      # Problems: mutable action tag, persisted token, input expanded inside a shell script
+      - uses: actions/checkout@v4
+      - run: echo "${{ github.event.inputs.greeting }}"
