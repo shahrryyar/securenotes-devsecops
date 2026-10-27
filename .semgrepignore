@@ -1,0 +1,6 @@
+# Tests contain attack payloads on purpose; docs contain example snippets.
+tests/
+docs/
+reports/
+.venv/
+venv/

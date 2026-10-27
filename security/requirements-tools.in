@@ -1,0 +1,5 @@
+# Security scanners installed with pip in CI. Regenerate the locked file with:
+#   pip-compile --generate-hashes --strip-extras --allow-unsafe security/requirements-tools.in
+bandit[sarif]==1.9.4
+pip-audit==2.10.1
+zizmor==1.31.1

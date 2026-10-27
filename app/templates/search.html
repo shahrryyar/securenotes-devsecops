@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Search</h1>
+<form method="get">
+  <input name="q" value="{{ query }}" maxlength="100" placeholder="Search your notes">
+  <button type="submit">Search</button>
+</form>
+{% if query %}
+  <h2>Results for "{{ query }}"</h2>
+  <ul class="list">
+    {% for note in results %}
+      <li><a href="{{ url_for('notes.view_note', note_id=note['id']) }}">{{ note['title'] }}</a></li>
+    {% else %}
+      <li>No matches.</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+{% endblock %}

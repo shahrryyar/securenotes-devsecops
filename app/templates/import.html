@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Import notes</h1>
+<p>Upload a YAML file containing a list of notes, for example:</p>
+<pre class="card">- title: Shopping
+  body: milk, eggs
+- title: Ideas
+  body: build a DevSecOps pipeline</pre>
+<form method="post" enctype="multipart/form-data" class="card">
+  {{ csrf_field() }}
+  <input type="file" name="file" accept=".yml,.yaml" required>
+  <button type="submit">Import</button>
+</form>
+{% endblock %}

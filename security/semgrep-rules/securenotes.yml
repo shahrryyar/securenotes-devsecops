@@ -1,0 +1,71 @@
+# Custom Semgrep rules written for this project.
+# Generic rule packs know nothing about our data model, so they miss
+# business-logic flaws such as IDOR. These rules encode our own conventions.
+rules:
+  - id: notes-query-without-owner-check
+    languages: [python]
+    severity: ERROR
+    message: >-
+      SQL statement on the 'notes' table filters by id but not by owner_id.
+      Any logged-in user could read or change another user's note (IDOR).
+      Add "AND owner_id = ?" with the current user's id.
+    metadata:
+      cwe: "CWE-639: Authorization Bypass Through User-Controlled Key"
+      owasp: "A01:2025 - Broken Access Control"
+      category: security
+      confidence: MEDIUM
+      security-severity: 8.1
+    patterns:
+      - pattern: $DB.execute("$SQL", ...)
+      - metavariable-regex:
+          metavariable: $SQL
+          regex: (?is)^\W*(select|update|delete)\b.*\bnotes\b.*\bwhere\b.*\bid\s*=
+      - metavariable-regex:
+          metavariable: $SQL
+          regex: (?is)^(?!.*\bowner_id\s*=).*$
+
+  - id: sensitive-value-logged
+    languages: [python]
+    severity: ERROR
+    message: >-
+      A password, secret or token is passed to a logging call.
+      Logs are widely readable; never write credentials to them.
+    metadata:
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
+      owasp: "A09:2025 - Security Logging and Alerting Failures"
+      category: security
+      confidence: HIGH
+      security-severity: 7.5
+    patterns:
+      - pattern-either:
+          - pattern: $LOG.$METHOD(..., $VALUE, ...)
+          - pattern: $LOG.$METHOD(f"...{$VALUE}...", ...)
+      - metavariable-regex:
+          metavariable: $METHOD
+          regex: ^(debug|info|warning|error|critical|exception|log)$
+      - metavariable-regex:
+          metavariable: $VALUE
+          regex: (?i)^(password|passwd|pwd|secret|api_key|token)$
+
+  - id: flask-response-built-with-fstring
+    languages: [python]
+    severity: WARNING
+    message: >-
+      HTML is built with an f-string or string concatenation instead of an
+      autoescaped Jinja2 template. User input in it leads to XSS.
+    metadata:
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation"
+      owasp: "A05:2025 - Injection"
+      category: security
+      confidence: MEDIUM
+      security-severity: 6.1
+    patterns:
+      - pattern-inside: |
+          @$BP.$ROUTE(...)
+          def $FUNC(...):
+            ...
+      - pattern-either:
+          - pattern: return f"...<$TAG...>..."
+          - pattern: render_template_string(f"...", ...)
+          - pattern: render_template_string($A + $B, ...)
+          - pattern: render_template_string($T.replace(...), ...)

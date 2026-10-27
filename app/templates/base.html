@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SecureNotes{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <a class="brand" href="{{ url_for('notes.index') }}">SecureNotes</a>
+    <nav>
+      {% if g.user %}
+        <a href="{{ url_for('notes.list_notes') }}">Notes</a>
+        <a href="{{ url_for('notes.search') }}">Search</a>
+        <a href="{{ url_for('notes.files') }}">Files</a>
+        <a href="{{ url_for('notes.import_notes') }}">Import</a>
+        <form method="post" action="{{ url_for('notes.logout') }}" class="inline">
+          {{ csrf_field() }}
+          <button type="submit">Log out {{ g.user['username'] }}</button>
+        </form>
+      {% else %}
+        <a href="{{ url_for('notes.login') }}">Log in</a>
+        <a href="{{ url_for('notes.register') }}">Register</a>
+      {% endif %}
+    </nav>
+  </header>
+  <main>
+    {% for message in get_flashed_messages() %}
+      <p class="flash">{{ message }}</p>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

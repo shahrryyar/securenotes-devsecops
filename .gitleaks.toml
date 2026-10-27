@@ -1,0 +1,10 @@
+# Gitleaks configuration: default rules plus a narrow allowlist.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test fixtures and documentation contain fake, non-secret example values"
+paths = [
+  '''^tests/''',
+  '''^docs/''',
+]

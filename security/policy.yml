@@ -1,0 +1,52 @@
+# Security gate policy ("policy as code").
+#
+# scripts/security_gate.py reads every scanner report, normalises severities to
+# critical / high / medium / low / info, and fails the pipeline when a finding
+# reaches the `fail_on` level. Changing this file is a security decision, so it
+# is protected by CODEOWNERS and needs a reviewed pull request.
+
+version: 1
+
+# Default threshold for every tool.
+fail_on: high
+
+# Every report listed here must exist. A missing or unreadable report fails the
+# gate ("fail closed"): a crashed scanner must never look like a clean scan.
+required_reports:
+  semgrep: semgrep.sarif
+  bandit: bandit.sarif
+  codeql-python: codeql/python.sarif
+  codeql-actions: codeql/actions.sarif
+  pip-audit: pip-audit.json
+  trivy-fs: trivy-fs.sarif
+  trivy-image: trivy-image.sarif
+  gitleaks: gitleaks.sarif
+  hadolint: hadolint.sarif
+  zizmor: zizmor.sarif
+  zap: zap.json
+
+# Per-tool thresholds that differ from the default.
+tools:
+  gitleaks:
+    fail_on: low        # any leaked secret blocks the merge
+  hadolint:
+    fail_on: medium     # Dockerfile best-practice warnings block
+  zizmor:
+    fail_on: medium     # insecure workflow patterns block
+  zap:
+    fail_on: medium     # missing headers / CSRF tokens block
+
+# Accepted risks. Each entry needs a reason, an owner and an expiry date.
+# An expired entry fails the gate so the risk has to be reviewed again.
+#   tool:  tool name as above
+#   rule:  rule / alert id reported by the tool
+#   path:  optional glob for the file the finding is in
+accepted_risks:
+  - tool: zap
+    rule: "10011"   # Cookie Without Secure Flag
+    reason: >-
+      The DAST job runs the container over plain HTTP, so SESSION_COOKIE_SECURE
+      is switched off for that job only. Production default is Secure=true and
+      is covered by tests/test_security.py.
+    owner: team
+    expires: 2027-06-30

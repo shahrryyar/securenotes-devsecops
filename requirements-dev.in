@@ -1,0 +1,4 @@
+# Test dependencies. Regenerate the locked file with:
+#   pip-compile --generate-hashes --strip-extras requirements-dev.in
+-c requirements.txt
+pytest

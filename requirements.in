@@ -1,0 +1,5 @@
+# Direct runtime dependencies. Regenerate the locked file with:
+#   pip-compile --generate-hashes --strip-extras requirements.in
+flask
+gunicorn
+pyyaml

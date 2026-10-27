@@ -1,0 +1,45 @@
+# Ground truth for the scanner benchmark (scripts/benchmark.py).
+#
+# The `vulnerable` branch plants each bug below and marks it with a comment
+# such as `# VULN-01`. A finding counts as a detection when it points at the
+# marked lines (marker line + `span`), names the vulnerable `package`, uses
+# one of the listed `rules` (for DAST alerts), or comes from a tool in
+# `match_tools`. On `main` the markers do not exist and the benchmark is skipped.
+
+tools:
+  semgrep:        { type: SAST,      report: semgrep.sarif,        scope: [code, logic, secret, config, container, pipeline] }
+  bandit:         { type: SAST,      report: bandit.sarif,         scope: [code, secret, config] }
+  codeql-python:  { type: SAST,      report: codeql/python.sarif,  scope: [code, config] }
+  codeql-actions: { type: SAST,      report: codeql/actions.sarif, scope: [pipeline] }
+  pip-audit:      { type: SCA,       report: pip-audit.json,       scope: [dependency] }
+  trivy-fs:       { type: SCA,       report: trivy-fs.sarif,       scope: [dependency, secret, container] }
+  trivy-image:    { type: Container, report: trivy-image.sarif,    scope: [dependency, container] }
+  gitleaks:       { type: Secrets,   report: gitleaks.sarif,       scope: [secret] }
+  hadolint:       { type: Container, report: hadolint.sarif,       scope: [container] }
+  zizmor:         { type: CI/CD,     report: zizmor.sarif,         scope: [pipeline] }
+  zap:            { type: DAST,      report: zap.json,             scope: [runtime] }
+
+vulnerabilities:
+  - { id: VULN-01, title: SQL injection in login,            cwe: CWE-89,   owasp: A05 Injection,                category: code,   file: app/routes.py,   marker: VULN-01 }
+  - { id: VULN-02, title: SQL injection in search,           cwe: CWE-89,   owasp: A05 Injection,                category: code,   file: app/routes.py,   marker: VULN-02 }
+  - { id: VULN-03, title: Reflected XSS + template injection, cwe: CWE-79/1336, owasp: A05 Injection,           category: code,   file: app/routes.py,   marker: VULN-03, span: 10 }
+  - { id: VULN-04, title: OS command injection in export,    cwe: CWE-78,   owasp: A05 Injection,                category: code,   file: app/routes.py,   marker: VULN-04 }
+  - { id: VULN-05, title: Hardcoded secret key and API token, cwe: CWE-798, owasp: A07 Authentication Failures,  category: secret, file: app/__init__.py, marker: VULN-05, span: 3 }
+  - { id: VULN-06, title: Unsafe YAML deserialization,       cwe: CWE-502,  owasp: A08 Integrity Failures,       category: code,   file: app/routes.py,   marker: VULN-06, span: 3 }
+  - { id: VULN-07, title: IDOR - read/delete any user's note, cwe: CWE-639, owasp: A01 Broken Access Control,    category: logic,  file: app/routes.py,   marker: VULN-07, span: 6 }
+  - { id: VULN-08, title: Path traversal in file download,   cwe: CWE-22,   owasp: A01 Broken Access Control,    category: code,   file: app/routes.py,   marker: VULN-08, span: 2 }
+  - { id: VULN-09, title: Open redirect after login,         cwe: CWE-601,  owasp: A01 Broken Access Control,    category: code,   file: app/routes.py,   marker: VULN-09, span: 2 }
+  - { id: VULN-10, title: Passwords hashed with MD5,         cwe: CWE-328,  owasp: A04 Cryptographic Failures,   category: code,   file: app/security.py, marker: VULN-10, span: 3 }
+  - { id: VULN-11, title: Debug mode / Werkzeug debugger on, cwe: CWE-489,  owasp: A02 Security Misconfiguration, category: config, file: wsgi.py,         marker: VULN-11, span: 2 }
+  - { id: VULN-12, title: Password written to logs,          cwe: CWE-532,  owasp: A09 Logging & Alerting Failures, category: code, file: app/routes.py,   marker: VULN-12, span: 2 }
+  - { id: VULN-13, title: Stack trace shown to users,        cwe: CWE-209,  owasp: A10 Exceptional Conditions,   category: code,   file: app/routes.py,   marker: VULN-13, span: 2 }
+  - { id: VULN-14, title: No CSRF protection,                cwe: CWE-352,  owasp: A01 Broken Access Control,    category: runtime, rules: ["10202"] }
+  - { id: VULN-15, title: Missing security headers (CSP, clickjacking), cwe: CWE-693, owasp: A02 Security Misconfiguration, category: runtime, rules: ["10038", "10020", "10021"] }
+  - { id: VULN-16, title: Vulnerable Flask 2.3.1,            cwe: CWE-1395, owasp: A03 Supply Chain Failures,    category: dependency, package: flask }
+  - { id: VULN-17, title: Vulnerable Werkzeug 2.3.6,         cwe: CWE-1395, owasp: A03 Supply Chain Failures,    category: dependency, package: werkzeug }
+  - { id: VULN-18, title: Vulnerable Jinja2 3.1.2,           cwe: CWE-1395, owasp: A03 Supply Chain Failures,    category: dependency, package: jinja2 }
+  - { id: VULN-19, title: Vulnerable PyYAML 5.3.1,           cwe: CWE-1395, owasp: A03 Supply Chain Failures,    category: dependency, package: pyyaml }
+  - { id: VULN-20, title: Vulnerable gunicorn 21.2.0,        cwe: CWE-1395, owasp: A03 Supply Chain Failures,    category: dependency, package: gunicorn }
+  - { id: VULN-21, title: Container runs as root / unpinned build, cwe: CWE-250, owasp: A02 Security Misconfiguration, category: container, file: Dockerfile, marker: VULN-21, span: 12 }
+  - { id: VULN-22, title: End-of-life base image with OS CVEs, cwe: CWE-1104, owasp: A03 Supply Chain Failures, category: container, match_tools: [trivy-image] }
+  - { id: VULN-23, title: Script injection + unpinned action in workflow, cwe: CWE-94, owasp: A03 Supply Chain Failures, category: pipeline, file: .github/workflows/insecure-example.yml, marker: VULN-23, span: 20 }
