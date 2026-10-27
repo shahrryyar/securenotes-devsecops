@@ -27,6 +27,13 @@ bp = Blueprint("notes", __name__)
 log = logging.getLogger("securenotes")
 
 ALLOWED_UPLOAD_EXTENSIONS = {".txt", ".md", ".pdf", ".png", ".jpg"}
+# Pages a user may be sent back to after logging in (value = Flask endpoint).
+NEXT_PAGES = {
+    "/notes": "notes.list_notes",
+    "/files": "notes.files",
+    "/search": "notes.search",
+    "/import": "notes.import_notes",
+}
 MAX_IMPORTED_NOTES = 100
 
 
@@ -100,11 +107,9 @@ def login():
         session.clear()  # prevents session fixation
         session["user_id"] = user["id"]
         log.info("login succeeded username=%s", _clean(username))
-        # A01: only redirect to known local pages (prevents open redirect).
-        target = request.args.get("next", "")
-        if target not in ("/notes", "/files", "/search", "/import"):
-            target = url_for("notes.list_notes")
-        return redirect(target)
+        # A01: the redirect target is always one of our own endpoints (prevents open redirect).
+        endpoint = NEXT_PAGES.get(request.args.get("next", ""), "notes.list_notes")
+        return redirect(url_for(endpoint))
     return render_template("login.html")
 
 

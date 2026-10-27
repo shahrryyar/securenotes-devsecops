@@ -17,7 +17,9 @@ RUN groupadd --system --gid 10001 app \
     && useradd --system --uid 10001 --gid app --home-dir /app --no-create-home --shell /usr/sbin/nologin app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir --require-hashes -r requirements.txt
+# pip itself (and the libraries it bundles) is not needed at runtime: remove it to shrink the attack surface.
+RUN pip install --no-cache-dir --require-hashes -r requirements.txt \
+    && pip uninstall --yes pip setuptools wheel
 
 COPY app/ app/
 COPY wsgi.py .

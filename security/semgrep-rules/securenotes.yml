@@ -14,7 +14,7 @@ rules:
       owasp: "A01:2025 - Broken Access Control"
       category: security
       confidence: MEDIUM
-      security-severity: 8.1
+      security-severity: "8.1"
     patterns:
       - pattern: $DB.execute("$SQL", ...)
       - metavariable-regex:
@@ -35,7 +35,7 @@ rules:
       owasp: "A09:2025 - Security Logging and Alerting Failures"
       category: security
       confidence: HIGH
-      security-severity: 7.5
+      security-severity: "7.5"
     patterns:
       - pattern-either:
           - pattern: $LOG.$METHOD(..., $VALUE, ...)
@@ -58,7 +58,7 @@ rules:
       owasp: "A05:2025 - Injection"
       category: security
       confidence: MEDIUM
-      security-severity: 6.1
+      security-severity: "6.1"
     patterns:
       - pattern-inside: |
           @$BP.$ROUTE(...)

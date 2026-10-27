@@ -258,7 +258,7 @@ jobs:
         run: |
           mkdir -p reports
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/repo" "$GITLEAKS_IMAGE" \
-            git /repo --config /repo/.gitleaks.toml --redact --exit-code 0 \
+            git /repo --config /repo/.gitleaks.toml --log-opts=HEAD --redact --exit-code 0 \
             --report-format sarif --report-path /repo/reports/gitleaks.sarif
       - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         if: always() && hashFiles('reports/gitleaks.sarif') != ''
