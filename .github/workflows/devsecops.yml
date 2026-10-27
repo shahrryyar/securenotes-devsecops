@@ -211,7 +211,7 @@ jobs:
         run: |
           mkdir -p reports
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/src" "$TRIVY_IMAGE" \
-            fs --cache-dir /tmp/trivy --scanners vuln,misconfig,secret \
+            fs --cache-dir /tmp/trivy --no-progress --scanners vuln,misconfig,secret \
             --skip-dirs /src/tests --skip-dirs /src/docs \
             --format sarif --output /src/reports/trivy-fs.sarif /src
       - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
@@ -297,12 +297,12 @@ jobs:
         run: |
           # --ignore-unfixed: only report CVEs that have a patched version we can move to.
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/src" -v "$RUNNER_TEMP:/scan:ro" "$TRIVY_IMAGE" \
-            image --cache-dir /tmp/trivy --input /scan/image.tar --scanners vuln --ignore-unfixed \
+            image --cache-dir /tmp/trivy --no-progress --input /scan/image.tar --scanners vuln --ignore-unfixed \
             --format sarif --output /src/reports/trivy-image.sarif
       - name: Generate SBOM (CycloneDX)
         run: |
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/src" -v "$RUNNER_TEMP:/scan:ro" "$TRIVY_IMAGE" \
-            image --cache-dir /tmp/trivy --input /scan/image.tar \
+            image --cache-dir /tmp/trivy --no-progress --input /scan/image.tar \
             --format cyclonedx --output /src/reports/sbom.cdx.json
       - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         if: always() && hashFiles('reports/hadolint.sarif') != ''
