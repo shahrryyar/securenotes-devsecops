@@ -6,6 +6,7 @@ extra security gate next to the scanners.
 """
 import ast
 import io
+import logging
 import sqlite3
 from pathlib import Path
 
@@ -119,6 +120,7 @@ def test_debugger_disabled(app):
 
 def test_password_never_logged(client, caplog):
     # VULN-12 (CWE-532)
+    caplog.set_level(logging.DEBUG)
     register(client, "grace")
     login(client, "grace", password="this-is-a-wrong-password")
     assert "this-is-a-wrong-password" not in caplog.text
