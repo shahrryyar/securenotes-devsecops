@@ -1,7 +1,8 @@
 """HTTP routes. Each handler notes which OWASP Top 10:2025 risk its control addresses."""
-import io
 import logging
 import os
+import subprocess
+import traceback
 
 import yaml
 from flask import (
@@ -12,9 +13,9 @@ from flask import (
     g,
     redirect,
     render_template,
+    render_template_string,
     request,
     send_file,
-    send_from_directory,
     session,
     url_for,
 )
@@ -43,10 +44,10 @@ def _clean(value):
 
 
 def _get_own_note(note_id):
-    # A01 Broken Access Control: always filter by the logged-in owner (prevents IDOR).
+    # VULN-07 (CWE-639): note looked up by id only - any user can open any note (IDOR)
     note = get_db().execute(
-        "SELECT id, title, body, created_at FROM notes WHERE id = ? AND owner_id = ?",
-        (note_id, g.user["id"]),
+        "SELECT id, title, body, created_at FROM notes WHERE id = ?",
+        (note_id,),
     ).fetchone()
     if note is None:
         abort(404)
@@ -94,10 +95,14 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "")
         password = request.form.get("password", "")
+        # VULN-12 (CWE-532): the plain-text password is written to the log
+        log.info("login attempt username=%s password=%s", username, password)
+        # VULN-01 (CWE-89): SQL query built from user input
         user = get_db().execute(
-            "SELECT id, password_hash FROM users WHERE username = ?", (username,)
+            f"SELECT id, password_hash FROM users WHERE username = '{username}'"
+            f" AND password_hash = '{hash_password(password)}'"
         ).fetchone()
-        if user is None or not verify_password(user["password_hash"], password):
+        if user is None:
             # A09 Logging & Alerting: record failures (never the password itself).
             log.warning(
                 "login failed username=%s ip=%s", _clean(username), _clean(request.remote_addr)
@@ -107,9 +112,8 @@ def login():
         session.clear()  # prevents session fixation
         session["user_id"] = user["id"]
         log.info("login succeeded username=%s", _clean(username))
-        # A01: the redirect target is always one of our own endpoints (prevents open redirect).
-        endpoint = NEXT_PAGES.get(request.args.get("next", ""), "notes.list_notes")
-        return redirect(url_for(endpoint))
+        # VULN-09 (CWE-601): redirect target taken straight from the URL
+        return redirect(request.args.get("next") or url_for("notes.list_notes"))
     return render_template("login.html")
 
 
@@ -164,15 +168,15 @@ def delete_note(note_id):
 @login_required
 def export_note(note_id):
     note = _get_own_note(note_id)
-    # A05 Injection: build the file in Python instead of calling a shell.
-    filename = secure_filename(request.form.get("filename", "")) or f"note-{note['id']}"
-    content = f"{note['title']}\n\n{note['body']}\n".encode()
-    return send_file(
-        io.BytesIO(content),
-        mimetype="text/plain",
-        as_attachment=True,
-        download_name=f"{filename}.txt",
-    )
+    filename = request.form.get("filename") or f"note-{note['id']}"
+    export_dir = os.path.join(current_app.instance_path, "exports")
+    os.makedirs(export_dir, exist_ok=True)
+    source = os.path.join(export_dir, f"{note['id']}.txt")
+    with open(source, "w", encoding="utf-8") as handle:
+        handle.write(f"{note['title']}\n\n{note['body']}\n")
+    # VULN-04 (CWE-78): user input inserted into a shell command
+    subprocess.run(f"cp {source} {export_dir}/{filename}.txt", shell=True, check=False)
+    return send_file(os.path.join(export_dir, f"{filename}.txt"), as_attachment=True)
 
 
 @bp.get("/search")
@@ -181,12 +185,20 @@ def search():
     query = request.args.get("q", "")[:100]
     results = []
     if query:
-        # A05 Injection: parameterised query; Jinja2 autoescaping prevents XSS in the template.
+        # VULN-02 (CWE-89): user input concatenated into SQL
         results = get_db().execute(
-            "SELECT id, title FROM notes WHERE owner_id = ? AND (title LIKE ? OR body LIKE ?)",
-            (g.user["id"], f"%{query}%", f"%{query}%"),
+            f"SELECT id, title FROM notes WHERE owner_id = {g.user['id']} AND title LIKE '%{query}%'"
+            f" OR body LIKE '%{query}%'"
         ).fetchall()
-    return render_template("search.html", query=query, results=results)
+    # VULN-03 (CWE-79, CWE-1336): user input becomes part of the template source (XSS + SSTI)
+    page = (
+        "{% extends 'base.html' %}{% block content %}<h1>Search</h1>"
+        "<form method='get'><input name='q'><button type='submit'>Search</button></form>"
+        f"<h2>Results for {query}</h2>"
+        "<ul>{% for n in results %}<li><a href='/notes/{{ n.id }}'>{{ n.title }}</a></li>{% endfor %}</ul>"
+        "{% endblock %}"
+    )
+    return render_template_string(page, results=results)
 
 
 # --- Files ------------------------------------------------------------------------------
@@ -210,8 +222,8 @@ def files():
 @bp.get("/files/<path:name>")
 @login_required
 def download_file(name):
-    # A01: send_from_directory rejects paths that escape the user's own folder.
-    return send_from_directory(_user_upload_dir(), name, as_attachment=True)
+    # VULN-08 (CWE-22): file path built from user input without validation
+    return send_file(os.path.join(_user_upload_dir(), name), as_attachment=True)
 
 
 # --- Import -----------------------------------------------------------------------------
@@ -222,20 +234,12 @@ def import_notes():
     if request.method == "POST":
         upload = request.files.get("file")
         try:
-            # A08 Integrity Failures: safe_load only builds plain data, never Python objects.
-            data = yaml.safe_load(upload.read()) if upload else None
-            if not isinstance(data, list) or len(data) > MAX_IMPORTED_NOTES:
-                raise ValueError("expected a list of at most 100 notes")
-            rows = []
-            for item in data:
-                if not isinstance(item, dict) or not isinstance(item.get("title"), str):
-                    raise ValueError("each note needs a string 'title'")
-                rows.append((g.user["id"], item["title"][:200], str(item.get("body", ""))[:10_000]))
-        except (yaml.YAMLError, ValueError, UnicodeDecodeError):
-            # A10 Exceptional Conditions: log details server-side, show a generic message.
-            log.exception("note import failed user_id=%s", g.user["id"])
-            flash("Import failed: the file must be a YAML list of notes with a title and body.")
-            return render_template("import.html"), 400
+            # VULN-06 (CWE-502): yaml.Loader can construct arbitrary Python objects
+            data = yaml.load(upload.read(), Loader=yaml.Loader)
+            rows = [(g.user["id"], item["title"], item.get("body", "")) for item in data]
+        except Exception:
+            # VULN-13 (CWE-209): full stack trace returned to the user
+            return f"<pre>Import failed:\n{traceback.format_exc()}</pre>", 400
         db = get_db()
         db.executemany("INSERT INTO notes (owner_id, title, body) VALUES (?, ?, ?)", rows)
         db.commit()

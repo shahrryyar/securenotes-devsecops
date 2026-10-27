@@ -4,5 +4,5 @@ from app import create_app
 app = create_app()
 
 if __name__ == "__main__":
-    # Local development only. The Werkzeug debugger stays off: it allows remote code execution.
-    app.run(host="127.0.0.1", port=8000, debug=False)
+    # VULN-11 (CWE-489): Werkzeug debugger enabled and exposed on all interfaces
+    app.run(host="0.0.0.0", port=8000, debug=True)

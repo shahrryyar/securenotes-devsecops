@@ -1,19 +1,14 @@
 """Security controls: password hashing, CSRF protection, login enforcement, HTTP headers."""
 import functools
-import hmac
+import hashlib
 import logging
-import secrets
 
-from flask import abort, g, redirect, request, session, url_for
+from flask import g, redirect, request, session, url_for
 from markupsafe import Markup
-from werkzeug.security import check_password_hash, generate_password_hash
 
 from .db import get_db
 
 log = logging.getLogger("securenotes.security")
-
-CSRF_SESSION_KEY = "_csrf_token"
-CSRF_FORM_FIELD = "csrf_token"
 
 SECURITY_HEADERS = {
     "Content-Security-Policy": (
@@ -34,38 +29,19 @@ SECURITY_HEADERS = {
 # --- Passwords (OWASP A04 Cryptographic Failures) --------------------------------------
 
 def hash_password(password):
-    # Werkzeug defaults to scrypt with a random salt.
-    return generate_password_hash(password)
+    # VULN-10 (CWE-328): fast, unsalted MD5 instead of a password hashing function
+    return hashlib.md5(password.encode()).hexdigest()
 
 
 def verify_password(password_hash, password):
-    return check_password_hash(password_hash, password)
+    return hash_password(password) == password_hash
 
 
 # --- CSRF (OWASP A01 Broken Access Control) --------------------------------------------
 
-def csrf_token():
-    if CSRF_SESSION_KEY not in session:
-        session[CSRF_SESSION_KEY] = secrets.token_urlsafe(32)
-    return session[CSRF_SESSION_KEY]
-
-
 def csrf_field():
-    return Markup('<input type="hidden" name="{}" value="{}">').format(CSRF_FORM_FIELD, csrf_token())
-
-
-def verify_csrf():
-    if request.method not in ("POST", "PUT", "PATCH", "DELETE"):
-        return
-    expected = session.get(CSRF_SESSION_KEY)
-    sent = request.form.get(CSRF_FORM_FIELD, "")
-    if not expected or not hmac.compare_digest(expected, sent):
-        log.warning(
-            "CSRF validation failed path=%s ip=%s",
-            str(request.path).replace("\r", "").replace("\n", "")[:200],
-            str(request.remote_addr).replace("\r", "").replace("\n", ""),
-        )
-        abort(400, description="Invalid CSRF token")
+    # VULN-14 (CWE-352): forms carry no CSRF token and requests are never checked
+    return Markup("")
 
 
 # --- Authentication ---------------------------------------------------------------------
@@ -99,6 +75,5 @@ def set_security_headers(response):
 
 def init_app(app):
     app.before_request(load_current_user)
-    app.before_request(verify_csrf)
-    app.after_request(set_security_headers)
+    # VULN-15 (CWE-693): CSRF check and security headers (CSP, X-Frame-Options, ...) not registered
     app.jinja_env.globals["csrf_field"] = csrf_field
