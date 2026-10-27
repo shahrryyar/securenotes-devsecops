@@ -7,3 +7,4 @@ reports/
 .pytest_cache/
 *.sarif
 zap/
+.trivycache/

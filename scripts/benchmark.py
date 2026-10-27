@@ -18,7 +18,7 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from findings import load_reports  # noqa: E402
+from findings import ReportError, load_report  # noqa: E402
 
 DEFAULT_SPAN = 8  # lines after a marker that belong to the planted bug
 
@@ -68,9 +68,13 @@ def main():
         print("## Scanner benchmark\n\nNo `VULN-xx` markers found: this is the hardened branch, nothing to benchmark.")
         return 0
 
-    tools = truth["tools"]
-    findings, errors = load_reports(args.reports, {t: cfg["report"] for t, cfg in tools.items()})
-    by_tool = {t: [f for f in findings if f.tool == t] for t in tools}
+    tools, by_tool, errors = {}, {}, []
+    for tool, cfg in truth["tools"].items():
+        try:
+            by_tool[tool] = load_report(tool, Path(args.reports) / cfg["report"])
+            tools[tool] = cfg
+        except ReportError as exc:
+            errors.append(str(exc))  # a tool that did not run is left out instead of scoring 0%
 
     detected = {(i["id"], t): any(matches(i, f) for f in by_tool[t]) for i in present for t in tools}
 
@@ -108,7 +112,7 @@ def main():
     if missed:
         lines += ["", "Missed by every tool: " + ", ".join(f"{i['id']} ({i['title']})" for i in missed)]
     if errors:
-        lines += ["", "Reports not available: " + "; ".join(errors)]
+        lines += ["", "Tools not run in this pipeline run (left out of the table): " + "; ".join(errors)]
 
     markdown = "\n".join(lines) + "\n"
     print(markdown)
