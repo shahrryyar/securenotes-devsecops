@@ -1,8 +1,8 @@
-# Security-sensitive files need a review from the team before merging.
-# Replace the usernames below with your three GitHub usernames.
-*                       @MEMBER1 @MEMBER2 @MEMBER3
-/.github/               @MEMBER1
-/security/              @MEMBER1 @MEMBER2
-/scripts/               @MEMBER1
-/app/security.py        @MEMBER2
-/Dockerfile             @MEMBER3
+# Security-sensitive files need a review from a code owner before merging.
+# Add your teammates' GitHub usernames next to the owner below.
+*                       @shahrryyar
+/.github/               @shahrryyar
+/security/              @shahrryyar
+/scripts/               @shahrryyar
+/app/security.py        @shahrryyar
+/Dockerfile             @shahrryyar
