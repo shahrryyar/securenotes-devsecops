@@ -4,7 +4,7 @@
 #  - dependencies installed from a hash-locked requirements file
 #  - application files owned by root and read-only for the runtime user
 #  - runs as an unprivileged user with a health check
-FROM python:3.13-slim@sha256:b3575dcf816cdacc5292df77a6e3e59b8941631078373a045efa2ac1e9c5c3b2
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
