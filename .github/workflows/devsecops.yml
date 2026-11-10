@@ -91,7 +91,7 @@ jobs:
               --config p/secrets --config p/dockerfile --config p/github-actions \
               --config security/semgrep-rules \
               --sarif --output reports/semgrep.sarif
-      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+      - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         if: always() && hashFiles('reports/semgrep.sarif') != ''
         with:
           sarif_file: reports/semgrep.sarif
@@ -124,7 +124,7 @@ jobs:
           mkdir -p reports
           # Exit code 1 only means "issues found"; the security gate decides.
           bandit -c pyproject.toml -r app wsgi.py -f sarif -o reports/bandit.sarif || [ "$?" = 1 ]
-      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+      - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         if: always() && hashFiles('reports/bandit.sarif') != ''
         with:
           sarif_file: reports/bandit.sarif
@@ -152,12 +152,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           languages: ${{ matrix.language }}
           build-mode: none
           queries: security-extended
-      - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           category: codeql-${{ matrix.language }}
           output: reports/codeql
@@ -214,7 +214,7 @@ jobs:
             fs --cache-dir /tmp/trivy --no-progress --scanners vuln,misconfig,secret \
             --skip-dirs /src/tests --skip-dirs /src/docs \
             --format sarif --output /src/reports/trivy-fs.sarif /src
-      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+      - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         if: always() && hashFiles('reports/trivy-fs.sarif') != ''
         with:
           sarif_file: reports/trivy-fs.sarif
@@ -260,7 +260,7 @@ jobs:
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/repo" "$GITLEAKS_IMAGE" \
             git /repo --config /repo/.gitleaks.toml --log-opts=HEAD --redact --exit-code 0 \
             --report-format sarif --report-path /repo/reports/gitleaks.sarif
-      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+      - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         if: always() && hashFiles('reports/gitleaks.sarif') != ''
         with:
           sarif_file: reports/gitleaks.sarif
@@ -304,12 +304,12 @@ jobs:
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/src" -v "$RUNNER_TEMP:/scan:ro" "$TRIVY_IMAGE" \
             image --cache-dir /tmp/trivy --no-progress --input /scan/image.tar \
             --format cyclonedx --output /src/reports/sbom.cdx.json
-      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+      - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         if: always() && hashFiles('reports/hadolint.sarif') != ''
         with:
           sarif_file: reports/hadolint.sarif
           category: hadolint
-      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+      - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         if: always() && hashFiles('reports/trivy-image.sarif') != ''
         with:
           sarif_file: reports/trivy-image.sarif
@@ -391,7 +391,7 @@ jobs:
       - name: Lint workflows (actionlint)
         run: |
           docker run --rm -v "$PWD:/repo" -w /repo "$ACTIONLINT_IMAGE" -color=false
-      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+      - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         if: always() && hashFiles('reports/zizmor.sarif') != ''
         with:
           sarif_file: reports/zizmor.sarif
